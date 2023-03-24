@@ -1,0 +1,39 @@
+{
+  "name": "mini-vite",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/node/index.js",
+  "type": "module",
+  "files": [
+    "bin",
+    "dist",
+    "client.d.ts",
+    "index.cjs",
+    "types"
+  ],
+  "bin": {
+    "mini-vite": "bin/vite.js"
+  },
+  "scripts": {
+    "build-bundle": "rimraf dist && rollup --config rollup.config.ts --configPlugin typescript"
+  },
+  "dependencies": {
+    "esbuild": "^0.17.5",
+    "postcss": "^8.4.21",
+    "resolve": "^1.22.1",
+    "rollup": "^3.18.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.0.0",
+    "@types/connect": "^3.4.35",
+    "cac": "^6.7.14",
+    "connect": "^3.7.0",
+    "open": "^9.0.0",
+    "picocolors": "^1.0.0",
+    "sirv": "^2.0.2",
+    "tslib": "^2.5.0"
+  }
+}

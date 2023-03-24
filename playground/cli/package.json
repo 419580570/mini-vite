@@ -1,0 +1,11 @@
+{
+  "name": "@vitejs/test-cli",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "mini-vite",
+    "build": "mini-vite build",
+    "debug": "node --inspect-brk ../../packages/vite/bin/vite",
+    "preview": "mini-vite preview"
+  }
+}
