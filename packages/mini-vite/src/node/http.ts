@@ -1,5 +1,5 @@
 import type {
-  Server as HttpServer,
+  // Server as HttpServer,
   ServerOptions as HttpsServerOptions,
 } from "node:https";
 import type { OutgoingHttpHeaders as HttpServerHeaders } from "node:http";

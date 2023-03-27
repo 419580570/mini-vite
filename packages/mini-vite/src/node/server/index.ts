@@ -5,6 +5,8 @@ import { DEFAULT_DEV_PORT } from "../constants";
 import { CommonServerOptions, httpServerStart } from "../http";
 import { printServerUrls } from "../logger";
 import { resolveServerUrls } from "../util";
+import { indexHtmlMiddleware } from "./middlewares/indexHtml";
+import { serveStaticMiddleware } from "./middlewares/static";
 import { openBrowser as _openBrowser } from "./openBrowser";
 // import { resolveHttpServer } from "../http";
 
@@ -20,6 +22,18 @@ export interface ServerOptions extends CommonServerOptions {
     | false
     | ((sourcePath: string, sourcemapPath: string) => boolean);
   force?: boolean;
+}
+export interface ResolvedServerOptions extends ServerOptions {
+  fs: Required<{
+    strict?: boolean;
+    allow?: string[];
+    deny?: string[];
+  }>;
+  middlewareMode: boolean;
+  sourcemapIgnoreList: Exclude<
+    ServerOptions["sourcemapIgnoreList"],
+    false | undefined
+  >;
 }
 
 export interface ViteDevServer {
@@ -71,13 +85,13 @@ export async function createServer(inlineConfig: InlineConfig = {}) {
     },
     printUrls() {
       if (server.resolvedUrls) {
-        printServerUrls(
-          server.resolvedUrls,
-          config.server!.host,
-        );
+        printServerUrls(server.resolvedUrls, config.server!.host);
       }
     },
   };
+
+  middlewares.use(serveStaticMiddleware(config.root, server));
+  middlewares.use(indexHtmlMiddleware(server));
   return server;
 }
 

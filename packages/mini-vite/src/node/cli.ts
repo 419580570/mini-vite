@@ -1,6 +1,6 @@
 import { cac } from "cac";
 import { ServerOptions } from "./server";
-const cli = cac("vite");
+const cli = cac("mini-vite");
 // global options
 interface GlobalCLIOptions {
   "--"?: string[];

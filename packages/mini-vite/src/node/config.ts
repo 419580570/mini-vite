@@ -5,7 +5,7 @@ import { build } from "esbuild";
 import { DEFAULT_CONFIG_FILES } from "./constants";
 import { pathToFileURL } from "node:url";
 import { isObject, mergeConfig, normalizePath } from "./util";
-import { ServerOptions } from "./server";
+import { ResolvedServerOptions, ServerOptions } from "./server";
 
 export interface UserConfig {
   root?: string;
@@ -34,6 +34,8 @@ export type ResolvedConfig = Readonly<
     configFileDependencies: string[];
     inlineConfig: InlineConfig;
     command: "build" | "serve";
+    root: string;
+    server: ResolvedServerOptions;
   }
 >;
 
@@ -68,6 +70,7 @@ export async function resolveConfig(
     root: config.root ? path.resolve(config.root) : process.cwd(),
     command,
     mode: inlineConfig.mode || defaultMode,
+    server: config.server as ResolvedServerOptions, // !!
   };
 
   return resolved;
