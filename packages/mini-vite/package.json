@@ -31,6 +31,7 @@
     "@types/connect": "^3.4.35",
     "cac": "^6.7.14",
     "connect": "^3.7.0",
+    "fast-glob": "^3.2.12",
     "open": "^9.0.0",
     "picocolors": "^1.0.0",
     "sirv": "^2.0.2",

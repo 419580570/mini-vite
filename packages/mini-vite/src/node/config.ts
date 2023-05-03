@@ -6,11 +6,14 @@ import { DEFAULT_CONFIG_FILES } from "./constants";
 import { pathToFileURL } from "node:url";
 import { isObject, mergeConfig, normalizePath } from "./util";
 import { ResolvedServerOptions, ServerOptions } from "./server";
+import { resolvePlugins } from "./plugins";
+import { Plugin } from "./plugin";
 
 export interface UserConfig {
   root?: string;
   base?: string;
   publicDir?: string | false;
+  cacheDir?: string;
   mode?: string;
   build?: any;
   logLevel?: "error" | "warn" | "info" | "silent";
@@ -36,6 +39,8 @@ export type ResolvedConfig = Readonly<
     command: "build" | "serve";
     root: string;
     server: ResolvedServerOptions;
+    plugins: readonly Plugin[];
+    cacheDir: string;
   }
 >;
 
@@ -62,16 +67,29 @@ export async function resolveConfig(
     }
   }
 
+  const resolvedRoot = normalizePath(
+    config.root ? path.resolve(config.root) : process.cwd()
+  );
+  const cacheDir = normalizePath(
+    config.cacheDir
+      ? path.resolve(resolvedRoot, config.cacheDir)
+      : path.join(resolvedRoot, `node_modules/.vite`)
+  );
+
   const resolved: ResolvedConfig = {
     ...config,
     configFile: configFile ? normalizePath(configFile) : undefined,
     configFileDependencies,
     inlineConfig,
     root: config.root ? path.resolve(config.root) : process.cwd(),
+    cacheDir,
     command,
     mode: inlineConfig.mode || defaultMode,
+    plugins: [],
     server: config.server as ResolvedServerOptions, // !!
   };
+
+  (resolved.plugins as Plugin[]) = await resolvePlugins(resolved);
 
   return resolved;
 }

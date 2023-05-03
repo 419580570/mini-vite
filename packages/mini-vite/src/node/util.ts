@@ -1,8 +1,11 @@
 import path from "node:path";
+import fs from "node:fs";
 import type { AddressInfo, Server } from "node:net";
 import { CommonServerOptions } from "./http";
 import { ResolvedConfig } from "./config";
 import { ResolvedServerUrls } from "./server";
+import { createHash } from "node:crypto";
+import resolve from "resolve";
 
 export function mergeConfig(
   defaults: Record<string, any>,
@@ -54,7 +57,45 @@ export async function resolveServerUrls(
   return { local, network };
 }
 
+export const bareImportRE = /^[\w@](?!.*:\/\/)/;
 export const queryRE = /\?.*$/s;
 export const hashRE = /#.*$/s;
 export const cleanUrl = (url: string): string =>
   url.replace(hashRE, "").replace(queryRE, "");
+
+export function resolveFrom(id: string, basedir: string): string {
+  return resolve.sync(id, {
+    basedir,
+    paths: [],
+    extensions: [".mjs", ".js", ".mts", ".ts", ".jsx", ".tsx", ".json"],
+    // necessary to work with pnpm
+    preserveSymlinks: false,
+  });
+}
+
+export const flattenId = (id: string): string =>
+  id
+    .replace(/[/:]/g, "_")
+    .replace(/\./g, "__")
+    .replace(/(\s*>\s*)/g, "___");
+
+export function getHash(text: Buffer | string): string {
+  return createHash("sha256").update(text).digest("hex").substring(0, 8);
+}
+
+export function emptyDir(dir: string): void {
+  for (const file of fs.readdirSync(dir)) {
+    fs.rmSync(path.resolve(dir, file), { recursive: true, force: true });
+  }
+}
+
+export function writeFile(
+  filename: string,
+  content: string | Uint8Array
+): void {
+  const dir = path.dirname(filename);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(filename, content);
+}

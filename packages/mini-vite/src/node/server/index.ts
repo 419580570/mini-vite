@@ -8,6 +8,8 @@ import { resolveServerUrls } from "../util";
 import { indexHtmlMiddleware } from "./middlewares/indexHtml";
 import { serveStaticMiddleware } from "./middlewares/static";
 import { openBrowser as _openBrowser } from "./openBrowser";
+import { createPluginContainer } from "./pluginContainer";
+import { initDepsOptimizer } from "../optimizer/optimizer";
 // import { resolveHttpServer } from "../http";
 
 export interface ServerOptions extends CommonServerOptions {
@@ -56,6 +58,8 @@ export async function createServer(inlineConfig: InlineConfig = {}) {
   const middlewares = connect();
   const { createServer } = await import("node:http");
   const httpServer = createServer(middlewares);
+  const container = await createPluginContainer(config);
+  
 
   const server: ViteDevServer = {
     config,
@@ -92,6 +96,31 @@ export async function createServer(inlineConfig: InlineConfig = {}) {
 
   middlewares.use(serveStaticMiddleware(config.root, server));
   middlewares.use(indexHtmlMiddleware(server));
+
+  let serverInited = false;
+  let initingServer: Promise<void> | undefined;
+  const initServer = async () => {
+    if (serverInited) return;
+    if (initingServer) return initingServer;
+    initingServer = (async function () {
+      await container.buildStart();
+      initDepsOptimizer(config, server);
+      initingServer = undefined;
+      serverInited = true;
+    })();
+    return initingServer;
+  };
+  // 重写httpServer.listen方法，启动服务之前预编译
+  const listen = httpServer.listen.bind(httpServer);
+  httpServer.listen = (async (port: number, ...args: any[]) => {
+    try {
+      await initServer();
+    } catch (e) {
+      httpServer.emit("error", e);
+      return;
+    }
+    return listen(port, ...args);
+  }) as any;
   return server;
 }
 
