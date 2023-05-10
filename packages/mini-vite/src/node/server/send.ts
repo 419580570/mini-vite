@@ -12,6 +12,13 @@ export interface SendOptions {
   map?: SourceMap | null;
 }
 
+const alias: Record<string, string | undefined> = {
+  js: "application/javascript",
+  css: "text/css",
+  html: "text/html",
+  json: "application/json",
+};
+
 export function send(
   req: IncomingMessage,
   res: ServerResponse,
@@ -22,6 +29,7 @@ export function send(
   if (res.writableEnded) {
     return;
   }
+  res.setHeader("Content-Type", alias[type] || type);
 
   res.statusCode = 200;
   res.end(content);

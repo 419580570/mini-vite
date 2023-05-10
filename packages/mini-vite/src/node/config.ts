@@ -15,6 +15,7 @@ export interface UserConfig {
   publicDir?: string | false;
   cacheDir?: string;
   mode?: string;
+  plugins?: Plugin[];
   build?: any;
   logLevel?: "error" | "warn" | "info" | "silent";
   clearScreen?: boolean;
@@ -57,6 +58,7 @@ export async function resolveConfig(
   let config = inlineConfig;
   let configFileDependencies: string[] = [];
   let { configFile } = config;
+
   if (configFile !== false) {
     const loadResult = await loadConfigFromFile(configFile);
 
@@ -66,6 +68,12 @@ export async function resolveConfig(
       configFileDependencies = loadResult.dependencies;
     }
   }
+
+  const [prePlugins, normalPlugins, postPlugins] = sortUserPlugins(
+    config.plugins
+  );
+
+  const userPlugins = [...prePlugins, ...normalPlugins, ...postPlugins];
 
   const resolvedRoot = normalizePath(
     config.root ? path.resolve(config.root) : process.cwd()
@@ -81,15 +89,22 @@ export async function resolveConfig(
     configFile: configFile ? normalizePath(configFile) : undefined,
     configFileDependencies,
     inlineConfig,
-    root: config.root ? path.resolve(config.root) : process.cwd(),
+    root: normalizePath(
+      config.root ? path.resolve(config.root) : process.cwd()
+    ),
     cacheDir,
     command,
     mode: inlineConfig.mode || defaultMode,
-    plugins: [],
+    plugins: userPlugins,
     server: config.server as ResolvedServerOptions, // !!
   };
 
-  (resolved.plugins as Plugin[]) = await resolvePlugins(resolved);
+  (resolved.plugins as Plugin[]) = await resolvePlugins(
+    resolved,
+    prePlugins,
+    normalPlugins,
+    postPlugins
+  );
 
   return resolved;
 }
@@ -188,4 +203,22 @@ async function loadConfigFromBundledFile(
       fs.unlinkSync(fileNameTmp);
     } catch {}
   }
+}
+
+export function sortUserPlugins(
+  plugins: (Plugin | Plugin[])[] | undefined
+): [Plugin[], Plugin[], Plugin[]] {
+  const prePlugins: Plugin[] = [];
+  const postPlugins: Plugin[] = [];
+  const normalPlugins: Plugin[] = [];
+
+  if (plugins) {
+    plugins.flat().forEach(p => {
+      if (p.enforce === "pre") prePlugins.push(p);
+      else if (p.enforce === "post") postPlugins.push(p);
+      else normalPlugins.push(p);
+    });
+  }
+
+  return [prePlugins, normalPlugins, postPlugins];
 }

@@ -2,14 +2,12 @@ import path from "path";
 import fs from "node:fs";
 import { ResolvedConfig } from "../config";
 import { scanImports } from "./scan";
-import {
-  emptyDir,
-  flattenId,
-  getHash,
-  normalizePath,
-  writeFile,
-} from "../util";
+import { emptyDir, flattenId, normalizePath, writeFile } from "../util";
 import esbuild from "esbuild";
+
+export interface DepsOptimizer {
+  metadata: DepOptimizationMetadata;
+}
 
 export interface OptimizedDepInfo {
   id: string;
@@ -107,8 +105,8 @@ export function loadCachedDepOptimizationMetadata(
   try {
     const cachedMetadataPath = path.join(depsCacheDir, "_metadata.json");
     cachedMetadata = parseDepsOptimizerMetadata(
-      fs.readFileSync(cachedMetadataPath, "utf-8")
-      // depsCacheDir
+      fs.readFileSync(cachedMetadataPath, "utf-8"),
+      depsCacheDir
     );
   } catch (e) {}
   if (cachedMetadata) return cachedMetadata;
@@ -117,10 +115,20 @@ export function loadCachedDepOptimizationMetadata(
 }
 
 function parseDepsOptimizerMetadata(
-  jsonMetadata: string
-  // depsCacheDir: string
+  jsonMetadata: string,
+  depsCacheDir: string
 ): DepOptimizationMetadata | undefined {
-  const { optimized } = JSON.parse(jsonMetadata);
+  const { optimized } = JSON.parse(
+    jsonMetadata,
+    (key: string, value: string) => {
+      // Paths can be absolute or relative to the deps cache dir where
+      // the _metadata.json is located
+      if (key === "file" || key === "src") {
+        return normalizePath(path.resolve(depsCacheDir, value));
+      }
+      return value;
+    }
+  );
   const metadata = {
     optimized: {},
     discovered: {},
@@ -208,4 +216,7 @@ function stringifyDepsOptimizerMetadata(
       return value;
     }
   );
+}
+export function getDepsCacheDirPrefix(config: ResolvedConfig): string {
+  return normalizePath(path.resolve(config.cacheDir, "deps"));
 }

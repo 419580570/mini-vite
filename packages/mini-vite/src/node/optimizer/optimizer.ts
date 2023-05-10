@@ -1,5 +1,6 @@
 import path from "path";
 import {
+  DepsOptimizer,
   // DepOptimizationMetadata,
   OptimizedDepInfo,
   addOptimizedDepInfo,
@@ -11,6 +12,15 @@ import {
 import { ResolvedConfig } from "../config";
 import { ViteDevServer } from "../server";
 import { flattenId, normalizePath } from "../util";
+
+const depsOptimizerMap = new WeakMap<ResolvedConfig, DepsOptimizer>();
+
+export function getDepsOptimizer(
+  config: ResolvedConfig,
+  ssr?: boolean
+): DepsOptimizer | undefined {
+  return depsOptimizerMap.get(config);
+}
 
 export async function initDepsOptimizer(
   config: ResolvedConfig,
@@ -25,10 +35,15 @@ async function createDepsOptimizer(
 ) {
   const isBuild = config.command === "build";
   let discover;
-  // let optimizationResult: Promise<DepOptimizationMetadata>;
+  /* 暂时直接读取缓存，未做决定是否需要重新运行预构建 */
   const cachedMetadata = loadCachedDepOptimizationMetadata(config);
   let metadata = cachedMetadata || initDepsOptimizerMetadata();
-  // let metadata = cachedMetadata || initDepsOptimizerMetadata(config);
+
+  const depsOptimizer = {
+    metadata,
+  };
+
+  depsOptimizerMap.set(config, depsOptimizer);
   if (!cachedMetadata) {
     if (!isBuild) {
       // 保证在服务启动后运行

@@ -4,12 +4,21 @@ import type { PartialResolvedId } from "rollup";
 import fs from "node:fs";
 import { bareImportRE, isObject, normalizePath } from "../util";
 import { PackageData, loadPackageData, resolvePackageData } from "../packages";
+import { ResolvedConfig } from "../config";
+import { getDepsOptimizer } from "../optimizer/optimizer";
+import { DepsOptimizer } from "../optimizer";
 
-export function resolvePlugin(root: string): Plugin {
+export function resolvePlugin(config: ResolvedConfig): Plugin {
+  const { root } = config;
   return {
     name: "vite:resolve",
-    async resolveId(id, importer) {
+    async resolveId(id, importer, resolveOpts) {
+      const depsOptimizer = getDepsOptimizer(config);
       let res: string | PartialResolvedId | undefined;
+      const options = {
+        ...config,
+        scan: resolveOpts?.scan,
+      };
       // URL
       // /foo -> /fs-root/foo
       if (id.startsWith("/")) {
@@ -30,6 +39,13 @@ export function resolvePlugin(root: string): Plugin {
 
       // bare module
       if (bareImportRE.test(id)) {
+        if (
+          depsOptimizer &&
+          !options.scan &&
+          (res = await tryOptimizedResolve(depsOptimizer, id))
+        ) {
+          return res;
+        }
         if ((res = tryNodeResolve(id, importer, root))) return res;
       }
     },
@@ -94,6 +110,17 @@ function getRealPath(resolved: string): string {
   return normalizePath(fs.realpathSync(resolved));
 }
 
+export async function tryOptimizedResolve(
+  depsOptimizer: DepsOptimizer,
+  id: string
+): Promise<string | undefined> {
+  const metadata = depsOptimizer.metadata;
+
+  const depInfo = metadata.optimized[id] || metadata.discovered[id];
+  if (depInfo) {
+    return depInfo.file;
+  }
+}
 /**
  * 解析入口文件
  */

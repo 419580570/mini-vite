@@ -1,5 +1,5 @@
 {
-  "name": "@mini-vitejs/test-cli",
+  "name": "@mini-vitejs/test-plugin",
   "private": true,
   "version": "0.0.0",
   "scripts": {

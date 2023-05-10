@@ -8,8 +8,10 @@ import { resolveServerUrls } from "../util";
 import { indexHtmlMiddleware } from "./middlewares/indexHtml";
 import { serveStaticMiddleware } from "./middlewares/static";
 import { openBrowser as _openBrowser } from "./openBrowser";
-import { createPluginContainer } from "./pluginContainer";
+import { createPluginContainer, PluginContainer } from "./pluginContainer";
 import { initDepsOptimizer } from "../optimizer/optimizer";
+import { transformMiddleware } from "./middlewares/transform";
+import { ModuleGraph } from "./moduleGraph";
 // import { resolveHttpServer } from "../http";
 
 export interface ServerOptions extends CommonServerOptions {
@@ -42,6 +44,8 @@ export interface ViteDevServer {
   config: ResolvedConfig;
   middlewares: connect.Server;
   httpServer: http.Server | null;
+  pluginContainer: PluginContainer;
+  moduleGraph: ModuleGraph;
   listen(port?: number, isRestart?: boolean): Promise<ViteDevServer>;
   openBrowser(): void;
   resolvedUrls: ResolvedServerUrls | null;
@@ -58,13 +62,17 @@ export async function createServer(inlineConfig: InlineConfig = {}) {
   const middlewares = connect();
   const { createServer } = await import("node:http");
   const httpServer = createServer(middlewares);
+  const moduleGraph: ModuleGraph = new ModuleGraph(url =>
+    container.resolveId(url, undefined)
+  );
   const container = await createPluginContainer(config);
-  
 
   const server: ViteDevServer = {
     config,
     middlewares,
     httpServer,
+    pluginContainer: container,
+    moduleGraph,
     resolvedUrls: null,
     async listen(port?: number, isRestart?: boolean) {
       await startServer(server, port);
@@ -94,6 +102,12 @@ export async function createServer(inlineConfig: InlineConfig = {}) {
     },
   };
 
+  for (const hook of config.plugins) {
+    if (!hook.configureServer) continue;
+    await hook.configureServer(server);
+  }
+
+  middlewares.use(transformMiddleware(server));
   middlewares.use(serveStaticMiddleware(config.root, server));
   middlewares.use(indexHtmlMiddleware(server));
 

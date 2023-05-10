@@ -23,7 +23,7 @@ export async function scanImports(config: ResolvedConfig): Promise<{
   const missing: Record<string, string> = {};
   const esbuildContext = glob("**/*.html", {
     cwd: config.root,
-    ignore: ["**/node_modules/**", `**/${config.build.outDir}/**`],
+    ignore: ["**/node_modules/**", `**/${config?.build?.outDir}/**`],
     absolute: true,
     suppressErrors: true, // suppress EACCES errors
   }).then(entries => {
@@ -70,16 +70,11 @@ function esbuildScanPlugin(
   depImports: Record<string, string>,
   missing: Record<string, string>
 ): Plugin {
-  const resolve = async (
-    id: string,
-    importer?: string,
-    options?: Parameters<PluginContainer["resolveId"]>[2] // 第三个参数的类型
-  ) => {
+  const resolve = async (id: string, importer?: string) => {
     const resolved = await container.resolveId(
       id,
       importer && normalizePath(importer),
       {
-        ...options,
         scan: true,
       }
     );

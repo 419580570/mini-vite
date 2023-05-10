@@ -62,6 +62,18 @@ export const queryRE = /\?.*$/s;
 export const hashRE = /#.*$/s;
 export const cleanUrl = (url: string): string =>
   url.replace(hashRE, "").replace(queryRE, "");
+const knownJsSrcRE = /\.(?:[jt]sx?|m[jt]s|vue|marko|svelte|astro|imba)(?:$|\?)/;
+
+export const isJSRequest = (url: string): boolean => {
+  url = cleanUrl(url);
+  if (knownJsSrcRE.test(url)) {
+    return true;
+  }
+  if (!path.extname(url) && !url.endsWith("/")) {
+    return true;
+  }
+  return false;
+};
 
 export function resolveFrom(id: string, basedir: string): string {
   return resolve.sync(id, {
@@ -98,4 +110,17 @@ export function writeFile(
     fs.mkdirSync(dir, { recursive: true });
   }
   fs.writeFileSync(filename, content);
+}
+
+export function wrapId(id: string): string {
+  return id.startsWith(`/@id/`) ? id : `/@id/` + id.replace("\0", `__x00__`);
+}
+
+/**
+ * Undo {@link wrapId}'s `/@id/` and null byte replacements.
+ */
+export function unwrapId(id: string): string {
+  return id.startsWith(`/@id/`)
+    ? id.slice(`/@id/`.length).replace(`__x00__`, "\0")
+    : id;
 }
