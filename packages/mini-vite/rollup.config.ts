@@ -10,6 +10,19 @@ const pkg = JSON.parse(
 );
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
+const clientConfig = defineConfig({
+  input: path.resolve(__dirname, "src/client/client.ts"),
+  plugins: [
+    typescript({
+      tsconfig: path.resolve(__dirname, "src/client/tsconfig.json"),
+    }),
+  ],
+  output: {
+    file: path.resolve(__dirname, "dist/client", "client.mjs"),
+    sourcemap: true,
+  },
+});
+
 function createNodeConfig(isProduction: boolean) {
   return defineConfig({
     output: {
@@ -44,5 +57,5 @@ function createNodeConfig(isProduction: boolean) {
 
 export default (commandLineArgs: any): RollupOptions[] => {
   const isProduction = !commandLineArgs.watch;
-  return defineConfig([createNodeConfig(isProduction)]);
+  return defineConfig([createNodeConfig(isProduction), clientConfig]);
 };

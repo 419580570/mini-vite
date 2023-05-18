@@ -3,12 +3,12 @@ import fs from "node:fs";
 import { ResolvedConfig } from "../config";
 import type { Plugin } from "../plugin";
 import { ViteDevServer } from "../server";
-import { cleanUrl, normalizePath, unwrapId, wrapId } from "../util";
+import { cleanUrl, unwrapId, wrapId } from "../util";
 import { init, parse as parseImports } from "es-module-lexer";
 import type { ImportSpecifier } from "es-module-lexer";
 import MagicString from "magic-string";
 import { getDepsCacheDirPrefix } from "../optimizer";
-import { FS_PREFIX } from "../constants";
+import { FS_PREFIX, CLIENT_PUBLIC_PATH } from "../constants";
 
 export function importAnalysisPlugin(config: ResolvedConfig): Plugin {
   let server: ViteDevServer;
@@ -22,6 +22,8 @@ export function importAnalysisPlugin(config: ResolvedConfig): Plugin {
       await init;
       let s: MagicString | undefined = new MagicString(source);
       let imports!: readonly ImportSpecifier[];
+      let hasHMR = false;
+      const importerModule = server.moduleGraph.getModuleById(importer)!;
       // let exports!: readonly ExportSpecifier[];
       try {
         [imports] = parseImports(source);
@@ -80,7 +82,15 @@ export function importAnalysisPlugin(config: ResolvedConfig): Plugin {
           n: specifier,
         } = imports[index];
 
-        // const rawUrl = source.slice(start, end);
+        /* 检查是否使用import.meta */
+        const rawUrl = source.slice(start, end);
+        if (rawUrl === "import.meta") {
+          const prop = source.slice(end, end + 4);
+          if (prop === ".hot") {
+            hasHMR = true;
+          }
+        }
+
         if (specifier) {
           const url = await normalizeUrl(specifier);
 
@@ -91,6 +101,18 @@ export function importAnalysisPlugin(config: ResolvedConfig): Plugin {
             });
           }
         }
+      }
+
+      if (hasHMR) {
+        s.prepend(
+          `import { createHotContext as __vite__createHotContext } from "${path.posix.join(
+            "/",
+            CLIENT_PUBLIC_PATH
+          )}";` +
+            `import.meta.hot = __vite__createHotContext(${JSON.stringify(
+              importerModule.url
+            )});`
+        );
       }
 
       if (s) {

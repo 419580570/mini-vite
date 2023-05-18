@@ -1,7 +1,7 @@
 import { ViteDevServer } from ".";
 import type { SourceMap } from "rollup";
 import { promises as fs } from "node:fs";
-import { cleanUrl, isObject } from "../util";
+import { cleanUrl, isObject, removeTimestampQuery } from "../util";
 
 export interface TransformResult {
   code: string;
@@ -17,6 +17,7 @@ export function transformRequest(url: string, server: ViteDevServer) {
 }
 
 async function doTransform(url: string, server: ViteDevServer) {
+  url = removeTimestampQuery(url);
   const { pluginContainer } = server;
   const module = await server.moduleGraph.getModuleByUrl(url);
 

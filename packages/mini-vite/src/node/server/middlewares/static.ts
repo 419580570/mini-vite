@@ -1,7 +1,7 @@
 import { ViteDevServer } from "..";
 import sirv from "sirv";
 import * as http from "node:http";
-import { cleanUrl } from "../../util";
+import { cleanUrl, isInternalRequest } from "../../util";
 import path from "node:path";
 
 export function serveStaticMiddleware(dir: string, server: ViteDevServer) {
@@ -13,7 +13,11 @@ export function serveStaticMiddleware(dir: string, server: ViteDevServer) {
     next: (err?: any) => void
   ) {
     const cleanedUrl = cleanUrl(req.url!);
-    if (cleanedUrl.endsWith("/") || path.extname(cleanedUrl) === "html") {
+    if (
+      cleanedUrl.endsWith("/") ||
+      path.extname(cleanedUrl) === "html" ||
+      isInternalRequest(req.url!)
+    ) {
       next();
     }
     serve(req, res, next);

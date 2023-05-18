@@ -2,12 +2,13 @@ import path from "node:path";
 import fs from "node:fs";
 import { build } from "esbuild";
 
-import { DEFAULT_CONFIG_FILES } from "./constants";
+import { CLIENT_ENTRY, DEFAULT_CONFIG_FILES } from "./constants";
 import { pathToFileURL } from "node:url";
 import { isObject, mergeConfig, normalizePath } from "./util";
 import { ResolvedServerOptions, ServerOptions } from "./server";
 import { resolvePlugins } from "./plugins";
 import { Plugin } from "./plugin";
+import { Alias } from "./plugins/alias";
 
 export interface UserConfig {
   root?: string;
@@ -16,6 +17,9 @@ export interface UserConfig {
   cacheDir?: string;
   mode?: string;
   plugins?: Plugin[];
+  resolve?: {
+    alias?: Alias[];
+  };
   build?: any;
   logLevel?: "error" | "warn" | "info" | "silent";
   clearScreen?: boolean;
@@ -39,6 +43,9 @@ export type ResolvedConfig = Readonly<
     inlineConfig: InlineConfig;
     command: "build" | "serve";
     root: string;
+    resolve: {
+      alias: Alias[];
+    };
     server: ResolvedServerOptions;
     plugins: readonly Plugin[];
     cacheDir: string;
@@ -78,6 +85,11 @@ export async function resolveConfig(
   const resolvedRoot = normalizePath(
     config.root ? path.resolve(config.root) : process.cwd()
   );
+
+  const resolveOptions: ResolvedConfig["resolve"] = {
+    alias: [{ find: /^\/?@vite\/client/, replacement: CLIENT_ENTRY }],
+  };
+
   const cacheDir = normalizePath(
     config.cacheDir
       ? path.resolve(resolvedRoot, config.cacheDir)
@@ -92,6 +104,7 @@ export async function resolveConfig(
     root: normalizePath(
       config.root ? path.resolve(config.root) : process.cwd()
     ),
+    resolve: resolveOptions,
     cacheDir,
     command,
     mode: inlineConfig.mode || defaultMode,

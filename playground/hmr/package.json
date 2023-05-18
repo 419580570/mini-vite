@@ -1,0 +1,10 @@
+{
+  "name": "@mini-vitejs/test-plugin",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "mini-vite",
+    "build": "mini-vite build",
+    "preview": "mini-vite preview"
+  }
+}

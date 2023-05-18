@@ -26,6 +26,7 @@ export function send(
   type: string,
   options: SendOptions
 ) {
+  console.log(content.slice(0, 20));
   if (res.writableEnded) {
     return;
   }

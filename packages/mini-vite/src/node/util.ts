@@ -124,3 +124,12 @@ export function unwrapId(id: string): string {
     ? id.slice(`/@id/`.length).replace(`__x00__`, "\0")
     : id;
 }
+
+const InternalPrefixRE = /^(?:\/@fs\/|\/@id\/|\/@vite\/client|\/@vite\/env)/;
+export const isInternalRequest = (url: string): boolean =>
+  InternalPrefixRE.test(url);
+const trailingSeparatorRE = /[?&]$/;
+const timestampRE = /\bt=\d{13}&?\b/;
+export function removeTimestampQuery(url: string): string {
+  return url.replace(timestampRE, "").replace(trailingSeparatorRE, "");
+}

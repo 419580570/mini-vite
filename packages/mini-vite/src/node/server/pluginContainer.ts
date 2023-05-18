@@ -1,6 +1,6 @@
 import { ResolvedConfig } from "../config";
 import { join } from "node:path";
-import type { LoadResult, PartialResolvedId, SourceDescription } from "rollup";
+import type { LoadResult, PartialResolvedId } from "rollup";
 import { isObject } from "../util";
 
 export interface PluginContainer {
